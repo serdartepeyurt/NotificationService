@@ -1,0 +1,5 @@
+﻿<Target Name="PrePackage" BeforeTargets="BuildPackage">
+  <PropertyGroup>
+    <BuildCommand>$(BuildCommand) -IncludeReferencedProjects</BuildCommand>
+  </PropertyGroup>
+</Target>
