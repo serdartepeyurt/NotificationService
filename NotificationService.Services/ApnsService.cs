@@ -42,33 +42,36 @@
                 hostname = "gateway.sandbox.push.apple.com";
             }
 
-            TcpClient client = new TcpClient(AddressFamily.InterNetwork);
-            client.Connect(hostname, port);
+            foreach (var target in notification.Target)
+            {
+                TcpClient client = new TcpClient(AddressFamily.InterNetwork);
+                client.Connect(hostname, port);
 
-            SslStream sslStream = new SslStream(
-                client.GetStream(), false,
-                new RemoteCertificateValidationCallback(ValidateServerCertificate),
-                null);
+                SslStream sslStream = new SslStream(
+                    client.GetStream(), false,
+                    new RemoteCertificateValidationCallback(ValidateServerCertificate),
+                    null);
 
-            sslStream.AuthenticateAsClient(hostname, this._certCollection, SslProtocols.Tls, false);
-            MemoryStream memoryStream = new MemoryStream();
-            BinaryWriter writer = new BinaryWriter(memoryStream);
-            writer.Write((byte)0);
-            writer.Write((byte)0);
-            writer.Write((byte)32);
+                sslStream.AuthenticateAsClient(hostname, this._certCollection, SslProtocols.Tls, false);
+                MemoryStream memoryStream = new MemoryStream();
+                BinaryWriter writer = new BinaryWriter(memoryStream);
+                writer.Write((byte)0);
+                writer.Write((byte)0);
+                writer.Write((byte)32);
 
-            /// Supports only single device notifications right now
-            writer.Write(HexStringToByteArray(notification.Target.ToUpperInvariant()));
-            string payload = ApsGenerator(notification);
-            writer.Write((byte)0);
-            writer.Write((byte)payload.Length);
-            byte[] b1 = Encoding.UTF8.GetBytes(payload);
-            writer.Write(b1);
-            writer.Flush();
-            byte[] array = memoryStream.ToArray();
-            sslStream.Write(array);
-            sslStream.Flush();
-            client.Dispose();
+                /// Supports only single device notifications right now
+                writer.Write(HexStringToByteArray(target.ToUpperInvariant()));
+                string payload = ApsGenerator(notification);
+                writer.Write((byte)0);
+                writer.Write((byte)payload.Length);
+                byte[] b1 = Encoding.UTF8.GetBytes(payload);
+                writer.Write(b1);
+                writer.Flush();
+                byte[] array = memoryStream.ToArray();
+                sslStream.Write(array);
+                sslStream.Flush();
+                client.Dispose();
+            }
         }
 
         private static byte[] HexStringToByteArray(string hex)

@@ -30,46 +30,49 @@
 
         public void SendNotification(Notification notification)
         {
-            var tRequest = WebRequest.Create("https://fcm.googleapis.com/fcm/send");
-            tRequest.Method = "post";
-            //serverKey - Key from Firebase cloud messaging server  
-            tRequest.Headers.Add($"Authorization: key={this._serverKey}");
-            //Sender Id - From firebase project setting  
-            tRequest.Headers.Add($"Sender: id={this._senderId}");
-            tRequest.ContentType = "application/json";
-            var payload = new
+            foreach (var target in notification.Target)
             {
-                to = notification.Target,
-                priority = "high",
-                content_available = true,
-                notification = new
+                var tRequest = WebRequest.Create("https://fcm.googleapis.com/fcm/send");
+                tRequest.Method = "post";
+                //serverKey - Key from Firebase cloud messaging server  
+                tRequest.Headers.Add($"Authorization: key={this._serverKey}");
+                //Sender Id - From firebase project setting  
+                tRequest.Headers.Add($"Sender: id={this._senderId}");
+                tRequest.ContentType = "application/json";
+                var payload = new
                 {
-                    body = notification.Message,
-                    title = notification.Title,
-                    badge = 0
-                },
-            };
-
-            string postbody = JsonConvert.SerializeObject(payload).ToString();
-            var byteArray = Encoding.UTF8.GetBytes(postbody);
-            tRequest.ContentLength = byteArray.Length;
-            using (var dataStream = tRequest.GetRequestStream())
-            {
-                dataStream.Write(byteArray, 0, byteArray.Length);
-                using (WebResponse tResponse = tRequest.GetResponse())
-                {
-                    using (var dataStreamResponse = tResponse.GetResponseStream())
+                    to = target,
+                    priority = "high",
+                    content_available = true,
+                    notification = new
                     {
-                        if (dataStreamResponse != null)
+                        body = notification.Message,
+                        title = notification.Title,
+                        badge = 0
+                    },
+                };
+
+                string postbody = JsonConvert.SerializeObject(payload).ToString();
+                var byteArray = Encoding.UTF8.GetBytes(postbody);
+                tRequest.ContentLength = byteArray.Length;
+                using (var dataStream = tRequest.GetRequestStream())
+                {
+                    dataStream.Write(byteArray, 0, byteArray.Length);
+                    using (WebResponse tResponse = tRequest.GetResponse())
+                    {
+                        using (var dataStreamResponse = tResponse.GetResponseStream())
                         {
-                            using (var tReader = new StreamReader(dataStreamResponse))
+                            if (dataStreamResponse != null)
                             {
-                                var sResponseFromServer = tReader.ReadToEnd();
-                                if (sResponseFromServer.Contains("error"))
+                                using (var tReader = new StreamReader(dataStreamResponse))
                                 {
-                                    throw new System.Exception($"ERROR IN FCM Connection. Response: {sResponseFromServer}");
+                                    var sResponseFromServer = tReader.ReadToEnd();
+                                    if (sResponseFromServer.Contains("error"))
+                                    {
+                                        throw new System.Exception($"ERROR IN FCM Connection. Response: {sResponseFromServer}");
+                                    }
+                                    //result.Response = sResponseFromServer;
                                 }
-                                //result.Response = sResponseFromServer;
                             }
                         }
                     }

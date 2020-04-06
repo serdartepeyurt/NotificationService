@@ -1,10 +1,11 @@
 ﻿namespace NotificationService
 {
     using Hangfire;
-    using Hangfire.Mongo;
+    using Hangfire.PostgreSql;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Hosting;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.AspNetCore.NodeServices;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.DependencyInjection;
     using NotificationService.Core.Definitions;
@@ -25,16 +26,17 @@
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_3_0);
+
+            var queueConnStr = Configuration.GetValue<string>("QueueConnString");
 
             // Add framework services.
             services.AddHangfire(config =>
             {
-                config.UseMongoStorage("mongodb://localhost", "Hangfire", new MongoStorageOptions
-                {
-                    MigrationOptions = new MongoMigrationOptions(MongoMigrationStrategy.Drop),
-                });
+                config.UsePostgreSqlStorage(queueConnStr);
             });
+
+            services.AddNodeServices();
 
             var apnsServices = new List<ApnsDefinition>();
             var fcmServices = new List<FcmDefinition>();
@@ -80,7 +82,9 @@
                         EmailAddress = x.GetValue<string>("EmailAddress"),
                         SenderName = x.GetValue<string>("SenderName"),
                         Password = x.GetValue<string>("Password"),
-                        SmtpServer = x.GetValue<string>("SmtpServer")
+                        SmtpServer = x.GetValue<string>("SmtpServer"),
+                        Port = x.GetValue<int>("Port"),
+                        UseSSL = x.GetValue<bool>("UseSSL")
                     }));
             }
 
@@ -104,7 +108,8 @@
             {
                 services.AddSingleton<INotificationService, SmtpEmailService>((provider) =>
                 {
-                    return new SmtpEmailService(def);
+                    var nodeService = provider.GetService<INodeServices>();
+                    return new SmtpEmailService(def, nodeService);
                 });
             }
         }
@@ -124,7 +129,6 @@
 
             app.UseHangfireDashboard();
             app.UseHangfireServer();
-            app.UseMvc();
         }
     }
 }

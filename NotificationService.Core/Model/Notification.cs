@@ -1,6 +1,7 @@
 ﻿namespace NotificationService.Core.Model
 {
     using NotificationService.Core.Service.Abstract;
+    using System.Collections.Generic;
 
     public class Notification
     {
@@ -9,11 +10,20 @@
 
         public string ProjectIdentifier { get; set; }
 
-        public string Target { get; set; }
+        public SendMethod Method { get; set; }
+        public List<string> Target { get; set; }
+        public List<string> CC { get; set; } = new List<string>();
+        public List<string> BCC { get; set; } = new List<string>();
+
         public Platform TargetPlatform { get; set; }
 
+        // EMAIL
         public string Message { get; set; }
         public string HtmlMessage { get; set; }
+        public bool UseTemplate { get; set; }
+        public EmailTemplateOptions TemplateOptions { get; set; }
+
+
         public string Title { get; set; }
         public string Action { get; set; }
         public int Badge { get; set; }
@@ -23,7 +33,7 @@
         // Hide default notification constructor
         private Notification() { }
 
-        public static Notification CreateEmailNotification(string to, string title, string message, string projectIdentifier, string htmlMessage = null)
+        public static Notification CreateEmailNotification(string to, string title, string message, string projectIdentifier, string htmlMessage = null, bool usesTemplate = false, EmailTemplateOptions templateOptions = null)
         {
             var not = new Notification()
             {
@@ -31,8 +41,10 @@
                 Title = title,
                 Message = message,
                 Type = NotificationType.Email,
-                Target = to,
-                HtmlMessage = htmlMessage
+                Target = new List<string> { to },
+                HtmlMessage = htmlMessage,
+                UseTemplate = usesTemplate,
+                TemplateOptions = templateOptions
             };
 
             return not;
@@ -45,7 +57,7 @@
                 ProjectIdentifier = projectIdentifier,
                 Message = message,
                 Type = NotificationType.SMS,
-                Target = to
+                Target = new List<string> { to }
             };
 
             return not;
@@ -58,7 +70,7 @@
                 Title = title,
                 Message = message,
                 Type = NotificationType.Push,
-                Target = to,
+                Target = new List<string> { to },
                 TargetPlatform = targetPlatform,
                 Badge = badge,
                 Action = null,
